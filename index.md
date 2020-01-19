@@ -1,3 +1,8 @@
+# Sound Import
+A guide on how to import custom sounds into Battlefront II.
+
+Example mod: [Kylo's Gamer Moment](https://mega.nz/#!upwBCKRa!h0HnJXOe_3WipsVoJr16cx3oMmLPCG9b-BFEQ40SOc8)
+
 ## Prerequisites
 
 To import custom sounds into Battlefront II you'll need 2 other programs:
@@ -5,7 +10,7 @@ To import custom sounds into Battlefront II you'll need 2 other programs:
 - Frosty Mod Editor
 
 You'll also need to have the latest version of the VC++ runtime installed: (download vc_redist.x64.exe)
-- [https://support.microsoft.com/en-us/help/2977003/the-latest-supported-visual-c-downloads]
+[https://support.microsoft.com/en-us/help/2977003/the-latest-supported-visual-c-downloads](https://support.microsoft.com/en-us/help/2977003/the-latest-supported-visual-c-downloads)
 
 ## Installation
 <header style="position: relative; float: none;">
