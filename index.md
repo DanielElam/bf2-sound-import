@@ -4,6 +4,9 @@ To import custom sounds into Battlefront II you'll need 2 other programs:
 - Audacity
 - Frosty Mod Editor
 
+You'll also need to have the latest version of the VC++ runtime installed: (download vc_redist.x64.exe)
+- https://support.microsoft.com/en-us/help/2977003/the-latest-supported-visual-c-downloads
+
 ## Installation
 <header style="position: relative; float: none;">
   <ul>
