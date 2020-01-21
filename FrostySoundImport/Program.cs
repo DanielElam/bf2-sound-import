@@ -124,7 +124,13 @@ namespace DanDev.FrostySoundImport
                     try
                     {
                         var result = Primrose.Utility.ExternalTool.Run(@"dandev-el3.exe", $"{fileName} -o {tempFile}",
-                            out var stdout, out _);
+                            out var stdout, out var stderr);
+
+                        if (!string.IsNullOrEmpty(stderr))
+                        {
+                            App.Logger.LogError(stderr);
+                        }
+
                         if (result == 0)
                         {
                             using (var nativeReader =
@@ -136,6 +142,11 @@ namespace DanDev.FrostySoundImport
                                 if (end.Length > 0 && end[0] == 0x48)
                                 {
                                     var lines = stdout.Split(new[] {'\r', '\n'}, StringSplitOptions.RemoveEmptyEntries);
+
+                                    foreach (var line in lines)
+                                    {
+                                        App.Logger.Log("> " + line);
+                                    }
 
                                     var chunkSize =
                                         uint.Parse(lines.First(l => l.StartsWith("ChunkSize:")).Substring(10));
@@ -152,19 +163,27 @@ namespace DanDev.FrostySoundImport
                             }
                         }
                     }
+                    catch (Exception e)
+                    {
+                        App.Logger.LogError(e.Message);
+                        App.Logger.LogError(e.StackTrace);
+                    }
                     finally
                     {
                         File.Delete(tempFile);
                     }
                 }
 
-                var english = soundWave.Localization[0];
-
                 if (soundWave.Localization.Count > 0)
-                    soundWave.Localization.RemoveRange(1, soundWave.Localization.Count - 1);
+                {
+                    var english = soundWave.Localization[0];
 
-                english.FirstVariationIndex = 0;
-                english.VariationCount = (ushort)imports.Count;
+                    if (soundWave.Localization.Count > 1)
+                        soundWave.Localization.RemoveRange(1, soundWave.Localization.Count - 1);
+
+                    english.FirstVariationIndex = 0;
+                    english.VariationCount = (ushort) imports.Count;
+                }
 
                 soundWave.Segments.Clear();
                 soundWave.RuntimeVariations.Clear();
