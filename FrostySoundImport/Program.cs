@@ -7,18 +7,26 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Reflection;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
+using CSCore;
+using CSCore.MediaFoundation;
+using DanDev.FrostySoundImport.DanDev.FrostySoundImport;
 using Frosty.Controls;
 using FrostyEditor;
 using FrostyEditor.Controls;
+using FrostySdk.Attributes;
 using FrostySdk.Ebx;
 using FrostySdk.IO;
 using FrostySdk.Managers;
+using FrostySdk.Resources;
 using Microsoft.Win32;
+using MeshSet = FrostySdk.Resources.MeshSet;
 
 namespace DanDev.FrostySoundImport
 {
@@ -37,6 +45,7 @@ namespace DanDev.FrostySoundImport
         private static FrostySoundWaveEditor _currentEditor;
         private static FrostyTabControl _tabControl;
         private static App _app;
+        private static string _version;
 
         [STAThread]
         static void Main(string[] args)
@@ -50,31 +59,68 @@ namespace DanDev.FrostySoundImport
                 Application.ResourceAssembly = typeof(App).Assembly;
                 _app = new App();
 
-                // dumb hack to wait for MainWindow after selecting game
-                Task.Run(() =>
+                _app.Activated += OnAppActivated;
+
+                _app.Activated += (object sender1, EventArgs e1) =>
                 {
-                    var found = false;
-                    while (!found)
+                    if (_app.MainWindow is FrostyEditor.Windows.PrelaunchWindow prelaunchWindow)
                     {
-                        _app.Dispatcher?.Invoke(() =>
+                        prelaunchWindow.Closed += (object sender2, EventArgs e2) =>
                         {
-                            if (_app.MainWindow is MainWindow mainWindow)
+                            if (_app.MainWindow is FrostyEditor.Windows.SplashWindow splashWindow)
                             {
-                                _mainWindow = mainWindow;
-
-                                _tabControl = mainWindow.GetFieldValue<FrostyTabControl>("tabControl");
-                                _tabControl.SelectionChanged += TabControlOnSelectionChanged;
-
-                                found = true;
+                                splashWindow.Closed += (object sender3, EventArgs e3) =>
+                                {
+                                    if (_app.MainWindow is MainWindow mainWindow)
+                                    {
+                                        _mainWindow = mainWindow;
+                                        OnMainWindowLaunch(mainWindow);
+                                    }
+                                };
                             }
-                        });
-                        Thread.Sleep(1000);
+                        };
                     }
-                });
+                };
 
                 _app.InitializeComponent();
                 _app.Run();
             });
+        }
+
+        private static void OnAppActivated(object sender, EventArgs e)
+        {
+            if (_app.MainWindow is FrostyEditor.Windows.PrelaunchWindow prelaunchWindow)
+            {
+                prelaunchWindow.Closed += (object sender2, EventArgs e2) =>
+                {
+                    if (_app.MainWindow is FrostyEditor.Windows.SplashWindow splashWindow)
+                    {
+                        splashWindow.Closed += (object sender3, EventArgs e3) =>
+                        {
+                            if (_app.MainWindow is MainWindow mainWindow)
+                            {
+                                // Frosty up
+                            }
+                        };
+                    }
+                };
+
+                _app.Activated -= OnAppActivated;
+            }
+        }
+
+        private static void OnMainWindowLaunch(MainWindow mainWindow)
+        {
+            _version = typeof(Program).Assembly.GetCustomAttribute<AssemblyFileVersionAttribute>().Version;
+            App.Logger.Log($"FrostySoundImport by DanDev - Version {_version}");
+
+            // hack because Frosty calls GetEntryAssembly() which returns null normally
+            var domainManager2 = new AppDomainManager();
+            domainManager2.SetFieldValue("m_entryAssembly", Application.ResourceAssembly);
+            AppDomain.CurrentDomain.SetFieldValue("_domainManager", domainManager2);
+
+            _tabControl = mainWindow.GetFieldValue<FrostyTabControl>("tabControl");
+            _tabControl.SelectionChanged += TabControlOnSelectionChanged;
         }
 
         private static void TabControlOnSelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -87,32 +133,46 @@ namespace DanDev.FrostySoundImport
             // replace the items in the toolbar with a new list that has our custom command inserted in
             var control = FindChild<ItemsControl>(_mainWindow, "editorToolbarItems");
             var items = content.RegisterToolbarItems();
-            items.Add(new ToolbarItem("Import (dandev)", "Import by DanDev", "Images/Import.png", new RelayCommand(_ => OnImportSoundCommand(), _ => true)));
+            items.Add(new ToolbarItem("DanDev Import", "Import by DanDev", "Images/Import.png", new RelayCommand(_ => OnImportSoundCommand(false), _ => true)));
+            items.Add(new ToolbarItem("DanDev Import (Force Mono)", "Import by DanDev", "Images/Import.png", new RelayCommand(_ => OnImportSoundCommand(true), _ => true)));
             control.ItemsSource = items;
         }
 
-        private static async void OnImportSoundCommand()
+        public static string EncodeParameterArgument(string original)
+        {
+            if (string.IsNullOrEmpty(original))
+                return original;
+            string value = Regex.Replace(original, @"(\\*)" + "\"", @"$1\$0");
+            value = Regex.Replace(value, @"^(.*\s.*?)(\\*)$", "\"$1$2$2\"");
+            return value;
+        }
+
+        private static async void OnImportSoundCommand(bool forceMono)
         {
             var asset = _currentEditor.Asset;
             var soundWave = (SoundWaveAsset)asset.RootObject;
 
-            /*
-            var segment = soundWave.Segments[index];
-            var variation = soundWave.RuntimeVariations[index];
-            var chunk = soundWave.Chunks[variation.ChunkIndex];*/
-            var chunk = soundWave.Chunks[0];
+            byte chunkIndex = 0;
+
+            if (soundWave.Localization != null && soundWave.Localization.Count > 0)
+            {
+                var english = soundWave.Localization[0];
+                chunkIndex = soundWave.RuntimeVariations[english.FirstVariationIndex].ChunkIndex;
+            }
+
+            var chunk = soundWave.Chunks[chunkIndex];
 
             var chunkEntry = App.AssetManager.GetChunkEntry(chunk.ChunkId);
 
             var ofd = new OpenFileDialog();
-            ofd.Filter = "*.mp3 (Audio Files)|*.mp3";
+            ofd.Filter = "All Media Files|*.wav;*.mp3";
             ofd.Title = "Open Audio";
             ofd.Multiselect = true;
 
             if (ofd.ShowDialog(_mainWindow) != true)
                 return;
 
-            FrostyTask.Begin("Importing Chunk", "");
+            FrostyTask2.Begin("Importing Chunk", "");
             await Task.Run(() =>
             {
                 var imports = new List<SoundImport>();
@@ -121,9 +181,33 @@ namespace DanDev.FrostySoundImport
                 foreach (var fileName in ofd.FileNames)
                 {
                     var tempFile = Path.GetTempFileName();
+#if DEBUG
+                    var tempFile2 = Path.GetTempFileName();
+
+                    var decoder = new CSCore.Ffmpeg.FfmpegDecoder(fileName);
+                    var source = decoder.ChangeSampleRate(48000);
+                    if (forceMono)
+                        decoder.ToMono();
+
+                    using (var encoder = MediaFoundationEncoder.CreateMP3Encoder(source.WaveFormat,
+                        tempFile2))
+                    {
+                        var buffer = new byte[source.WaveFormat.BytesPerSecond];
+                        int read;
+                        while ((read = source.Read(buffer, 0, buffer.Length)) > 0)
+                        {
+                            encoder.Write(buffer, 0, read);
+                        }
+                    }
+#else
+                    var tempFile2 = fileName;
+#endif
+
                     try
                     {
-                        var result = Primrose.Utility.ExternalTool.Run(@"dandev-el3.exe", $"{fileName} -o {tempFile}",
+                        var fileNameEncoded = EncodeParameterArgument(tempFile2);
+                        App.Logger.Log($"- \"{fileNameEncoded}\"");
+                        var result = Primrose.Utility.ExternalTool.Run(@"dandev-el3.exe", $"{fileNameEncoded} -o {tempFile}",
                             out var stdout, out var stderr);
 
                         if (!string.IsNullOrEmpty(stderr))
@@ -141,7 +225,7 @@ namespace DanDev.FrostySoundImport
 
                                 if (end.Length > 0 && end[0] == 0x48)
                                 {
-                                    var lines = stdout.Split(new[] {'\r', '\n'}, StringSplitOptions.RemoveEmptyEntries);
+                                    var lines = stdout.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
 
                                     foreach (var line in lines)
                                     {
@@ -155,8 +239,11 @@ namespace DanDev.FrostySoundImport
 
                                     imports.Add(new SoundImport
                                     {
-                                        SourceFile = fileName, Chunk = end, ChunkOffset = totalChunkSize,
-                                        ChunkSize = chunkSize, SegmentLength = segmentLength
+                                        SourceFile = fileName,
+                                        Chunk = end,
+                                        ChunkOffset = totalChunkSize,
+                                        ChunkSize = chunkSize,
+                                        SegmentLength = segmentLength
                                     });
                                     totalChunkSize += chunkSize;
                                 }
@@ -170,7 +257,8 @@ namespace DanDev.FrostySoundImport
                     }
                     finally
                     {
-                        File.Delete(tempFile);
+                        try { File.Delete(tempFile); } catch (Exception) { /* ignored */ }
+                        try { File.Delete(tempFile2); } catch (Exception) { /* ignored */ }
                     }
                 }
 
@@ -182,7 +270,7 @@ namespace DanDev.FrostySoundImport
                         soundWave.Localization.RemoveRange(1, soundWave.Localization.Count - 1);
 
                     english.FirstVariationIndex = 0;
-                    english.VariationCount = (ushort) imports.Count;
+                    english.VariationCount = (ushort)imports.Count;
                 }
 
                 soundWave.Segments.Clear();
@@ -205,7 +293,7 @@ namespace DanDev.FrostySoundImport
 
                     soundWave.RuntimeVariations.Add(new SoundWaveRuntimeVariation
                     {
-                        ChunkIndex = 0,
+                        ChunkIndex = chunkIndex,
                         FirstLoopSegmentIndex = 0,
                         FirstSegmentIndex = (ushort)i,
                         LastLoopSegmentIndex = 0,
@@ -229,7 +317,7 @@ namespace DanDev.FrostySoundImport
                 });
 
             });
-            FrostyTask.End();
+            FrostyTask2.End();
         }
 
 
@@ -279,4 +367,5 @@ namespace DanDev.FrostySoundImport
             return foundChild;
         }
     }
+
 }
