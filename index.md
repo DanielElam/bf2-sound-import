@@ -5,6 +5,21 @@ Example mod: [Kylo's Gamer Moment](https://mega.nz/#!upwBCKRa!h0HnJXOe_3WipsVoJr
 
 Example mod project file: [Kylo's Gamer Moment](https://mega.nz/#!G44w0CTI!YKTPI8yBT38G1fHVu7oi9Mgb5dUjZp2NPegJLckKV3E)
 
+## New Button Injector!
+Sound Import now comes with a utility program that hosts FrostyEd.exe and injects an import button into the sound editor.
+
+Make sure `dandev-el3.exe` (version 1.1), `FrostyEd.exe` and `FrostySoundImport.exe` are all in the same directory.
+
+Close and re-open the sound tab after importing to see the changes in the editor. 
+
+<header style="position: relative; float: none;">
+  <ul>
+    <li style="width: 89px; border-right: 0px;"><a href="https://github.com/DanielElam/bf2-sound-import/releases/download/1.3/FrostySoundImport.zip">Download <strong>ZIP File</strong></a></li>
+  </ul>
+</header>
+
+# Manual Sound Import Guide
+
 ## Prerequisites
 
 To import custom sounds into Battlefront II you'll need 2 other programs:
