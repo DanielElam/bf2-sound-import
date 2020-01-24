@@ -1,6 +1,6 @@
 # Frosty Sound Import
 
-An unofficial host application the runs your currently installed Frosty Editor and injects a sound import feature.
+An unofficial host application that runs your currently installed Frosty Editor and injects a sound import feature.
 
 Currently only supports `SoundWaveAsset`.
 
