@@ -60,28 +60,6 @@ namespace DanDev.FrostySoundImport
                 _app = new App();
 
                 _app.Activated += OnAppActivated;
-
-                _app.Activated += (object sender1, EventArgs e1) =>
-                {
-                    if (_app.MainWindow is FrostyEditor.Windows.PrelaunchWindow prelaunchWindow)
-                    {
-                        prelaunchWindow.Closed += (object sender2, EventArgs e2) =>
-                        {
-                            if (_app.MainWindow is FrostyEditor.Windows.SplashWindow splashWindow)
-                            {
-                                splashWindow.Closed += (object sender3, EventArgs e3) =>
-                                {
-                                    if (_app.MainWindow is MainWindow mainWindow)
-                                    {
-                                        _mainWindow = mainWindow;
-                                        OnMainWindowLaunch(mainWindow);
-                                    }
-                                };
-                            }
-                        };
-                    }
-                };
-
                 _app.InitializeComponent();
                 _app.Run();
             });
@@ -99,7 +77,8 @@ namespace DanDev.FrostySoundImport
                         {
                             if (_app.MainWindow is MainWindow mainWindow)
                             {
-                                // Frosty up
+                                _mainWindow = mainWindow;
+                                OnMainWindowLaunch(mainWindow);
                             }
                         };
                     }
