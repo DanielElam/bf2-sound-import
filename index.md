@@ -14,7 +14,7 @@ Close and re-open the sound tab after importing to see the changes in the editor
 
 <header style="position: relative; float: none;">
   <ul>
-    <li style="width: 89px; border-right: 0px;"><a href="https://github.com/DanielElam/bf2-sound-import/releases/download/1.3.1/FrostySoundImport-1.3.1.zip">Download <strong>ZIP File</strong></a></li>
+    <li style="width: 89px; border-right: 0px;"><a href="https://github.com/DanielElam/bf2-sound-import/releases/download/1.3.1/FrostySoundImport-1.3.1.2.zip">Download <strong>ZIP File</strong></a></li>
   </ul>
 </header>
 
